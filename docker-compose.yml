@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:1.15-alpine
+    restart: unless-stopped
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    ports:
+      - '8080:80'
+    volumes:
+      - ./docker-config/nginx:/etc/nginx/conf.d
+    depends_on:
+      - api
+  api:
+    container_name: backend
+    restart: always
+    build:
+      context: .
+    ports:
+      - '3000:80'
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    environment: 
+      - MONGO_INITDB_DATABASE=fastapi
+      - MONGO_INITDB_ROOT_USERNAME=fastapiproot
+      - MONGO_INITDB_ROOT_PASSWORD=fastapiproot
+    volumes:
+      - ./docker-config/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+      - ./docker-volumes/mongo-volume:/data/db
+    ports:
+      - '27017:27017'
